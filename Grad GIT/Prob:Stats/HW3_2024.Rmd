@@ -1,0 +1,245 @@
+---
+title: "HomeWork 3, CHASE MAUGHAN u0962361"
+output: 
+  html_document:
+    toc: true # table of content true
+    toc_depth: 2  # upto three depths of headings (specified by #, ## and ###)
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+    df_print: paged
+  # 
+  # number_sections: true  ## if you want number sections at each table header
+  # theme: united  # many options for theme, this one is my favorite.
+  # highlight: tango  # specifies the syntax highlighting style
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# HomeWork 3
+
+## 1.
+
+### A biomedical informatics researcher is investigating the relationship between smoking and multiple biological measurements. We want to compare the mean age for both smokers and non-smokers and we want to sample participants from each group proportionally to their representation in the population. The dataset smoking.csv contains this information, with two columns: "age" (numeric) and "smoking" (factor with 2 levels "0" and "1" [yes/no]). Answer the following questions using the concepts seen in class.
+
+#### 1. **Point Estimate:**
+
+#### Calculate the mean age for the entire population based on the collected sample.
+
+```{r}
+print(getwd())
+
+```
+
+```{r}
+smoking <- read.csv("Stats and Prob/smoking.csv", header = TRUE)
+age_mean <- mean(smoking$age)
+print(age_mean)
+
+```
+
+
+
+#### 2. **Random Sampling:**
+
+#### Randomly select a subset of 50 patients from the dataset without replacement. Calculate the mean age for this subset.
+
+
+```{r}
+random_sample <- smoking[sample(nrow(smoking),50, replace = FALSE),]
+rs_mean <- mean(random_sample$age)
+print(rs_mean)
+
+```
+
+
+
+#### 3. **Resampling:**
+
+#### Perform bootstrapping on the entire dataset to estimate the sampling distribution of the mean age for the cohort Use 1000 bootstrap samples and calculate the mean age for each sample.
+
+
+
+```{r}
+n <- 1000
+
+bootstrap_means <- numeric(n)
+
+for (i in 1:n) {
+  bootstrap_sample <- smoking[sample(nrow(smoking), replace = TRUE), ]
+  bootstrap_means[i] <- mean(bootstrap_sample$age)
+}
+
+
+pop_mean <- mean(bootstrap_means)
+
+print(paste("Mean of Bootstrap samples: ", pop_mean))
+
+```
+
+
+
+
+#### 4. **Confidence Intervals:**
+
+#### Calculate a 95% confidence interval for the population mean age level using the bootstrap distribution obtained in the previous step.
+
+
+```{r}
+confidence_interval <- quantile(bootstrap_means, c(0.025, 0.975))
+
+print(paste("95% Confidence Interval: [", confidence_interval[1], ", ", confidence_interval[2], "]"))
+
+```
+
+
+
+#### 5. **Standard Error of the Mean (SEM):**
+
+#### Calculate the standard error of the mean (SEM) of your estimate.
+
+
+
+```{r}
+se_m <- sd(bootstrap_means)
+
+print(paste("Standard Error of the Mean: ", se_m))
+
+
+```
+
+## 2.
+
+### Markov Chain: physical exercise training method A is used only 5% of the time, a person using method A will stay with this method 85% of the time, and a person not using method A will switch to method A about 65% time. At the beginning of the experiment only 5% of people used method A.
+
+#### 1. Generate a transition matrix for this Markov chain
+
+
+
+
+```{r}
+stay_A <- 0.85  # probability of staying with method A when already using it
+switch_to_A <- 0.65  # probability of switching to method A when not using it
+switch_to_B <- 0.15  # probability of switching from method A to not using it
+stay_B <- 0.35  # probability of staying with not using method A
+
+transition_matrix <- matrix(c(stay_A, switch_to_A, switch_to_B, stay_B), nrow = 2, byrow = TRUE,
+                            dimnames = list(c("A", "B"), c("A", "B")))
+
+# Display the transition matrix
+print(transition_matrix)
+                          
+```
+
+
+
+#### 2. Generate a transition plot (using R or by hand as an image it’s valid)
+
+```{r}
+
+library(igraph)
+
+# Create a graph from the transition matrix
+graph <- graph_from_adjacency_matrix(transition_matrix, mode = "directed", weighted = TRUE)
+
+# Plot the graph
+plot(graph, layout = layout.circle, vertex.label = colnames(transition_matrix),
+     edge.label = round(E(graph)$weight, 2), main = "Markov Chain Transition Diagram")
+                          
+```
+
+#### 3. Plot the change in the probabilities over time for both methods until the 10th time unit.
+```{r}
+# Set initial probabilities
+initial_probabilities <- c(0.05, 0.95)  # 5% chance to start with A, 95% chance to start with B
+current_probabilities <- initial_probabilities
+
+# Set up a matrix to store the probabilities over time
+probabilities_over_time <- matrix(0, nrow = 10, ncol = 2)
+probabilities_over_time[1,] <- current_probabilities
+
+# Simulate the change in probabilities over time
+for (t in 2:10) {
+  current_probabilities <- current_probabilities %*% transition_matrix
+  probabilities_over_time[t,] <- current_probabilities
+}
+
+# Plot the results
+time_points <- 1:10
+plot(time_points, probabilities_over_time[,1], type='l', col='blue', ylim=c(0,1), xlab='Time', ylab='Probability', main='Probabilities over Time')
+lines(time_points, probabilities_over_time[,2], type='l', col='red')
+legend("topright", legend=c("A", "B"), col=c("blue", "red"), lty=1)
+
+                          
+```
+
+## 3.
+
+### Random Walk: Another simpler example of a random walk is a one-dimensional random walk. first we place a marker at zero (our initial state), we flip a coin, if it lands on heads, the marker is moved one unit to the right (1), if it lands on tails it is moved one unit to the left.
+
+#### 1. Generate a function that randomly draws from our initial state and populates a vector with the different transitions.
+
+```{r}
+
+generate_random_walk <- function(num_steps) {
+  position <- 0
+  transitions <- numeric(num_steps)
+  
+  for (step in 1:num_steps) {
+    coin_flip <- sample(c(-1, 1), size = 1)
+    position <- position + coin_flip
+    transitions[step] <- coin_flip
+  }
+  
+  return(list(transitions = transitions, end_position = position))
+}
+
+
+random_walk_result <- generate_random_walk(10)
+
+print(random_walk_result)
+
+```
+
+#### 2. Generate a plot that shows 500 independent one-dimensional walks, differentiating walks that end above 0 or below 0.
+
+```{r}
+
+num_walks <- 500
+num_steps <- 50
+
+# Generate random walks
+
+walks <- lapply(1:num_walks, function(i) generate_random_walk(num_steps))
+
+# Plot the results
+plot(1, type = "n", xlim = c(1, num_steps), ylim = c(min(sapply(walks, function(w) min(cumsum(w$transitions)))), 
+                                                      max(sapply(walks, function(w) max(cumsum(w$transitions))))), 
+     xlab = "Steps", ylab = "Position", main = "500 Independent One-Dimensional Walks")
+
+for (i in 1:num_walks) {
+  end_position <- walks[[i]]$end_position
+  color <- ifelse(end_position > 0, "blue", "green")
+  lines(1:num_steps, cumsum(walks[[i]]$transitions), col = color, lwd = 0.8)
+}
+
+
+```
+
+#### 3. What is the frequency of walks that ended in a positive cumulative count, in zero, or negative?
+
+```{r}
+
+positive <- sum(sapply(walks, function(w) w$end_position > 0))
+zero <- sum(sapply(walks, function(w) w$end_position == 0))
+negative <- sum(sapply(walks, function(w) w$end_position < 0))
+
+
+cat("Frequency of walks ending in a positive cumulative count:", positive, "\n")
+cat("Frequency of walks ending in zero:", zero, "\n")
+cat("Frequency of walks ending in a negative cumulative count:", negative, "\n")
+
+
+```
